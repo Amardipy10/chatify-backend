@@ -1,28 +1,38 @@
 import arcjet, { shield, detectBot, slidingWindow } from "@arcjet/node";
-
 import { ENV } from "./env.js";
+
+// decide mode based on environment
+const MODE = ENV.NODE_ENV === "production" ? "DRY_RUN" : "DRY_RUN";
+// 👆 prod me pehle DRY_RUN rakho, baad me LIVE karna
 
 const aj = arcjet({
   key: ENV.ARCJET_KEY,
   rules: [
-    // Shield protects your app from common attacks e.g. SQL injection
-    shield({ mode: "LIVE" }),
-    // Create a bot detection rule
+    /* =========================
+       SHIELD – basic protection
+    ========================= */
+    shield({ mode: MODE }),
+
+    /* =========================
+       BOT DETECTION
+       (DRY_RUN in prod initially)
+    ========================= */
     detectBot({
-      mode: "LIVE", // Blocks requests. Use "DRY_RUN" to log only
-      // Block all bots except the following
+      mode: MODE,
       allow: [
-        "CATEGORY:SEARCH_ENGINE", // Google, Bing, etc
-        // Uncomment to allow these other common bot categories
-        // See the full list at https://arcjet.com/bot-list
-        //"CATEGORY:MONITOR", // Uptime monitoring services
-        //"CATEGORY:PREVIEW", // Link previews e.g. Slack, Discord
+        "CATEGORY:SEARCH_ENGINE",
+        "CATEGORY:PREVIEW",   // Discord, Slack previews
+        "CATEGORY:MONITOR",   // Uptime bots (Render, Vercel)
       ],
     }),
-    // Create a token bucket rate limit. Other algorithms are supported.
+
+    /* =========================
+       RATE LIMIT
+       Soft limit first
+    ========================= */
     slidingWindow({
-      mode: "LIVE", // Blocks requests. Use "DRY_RUN" to log only
-      max: 100,
+      mode: MODE,
+      max: 200,     // safer for auth routes
       interval: 60,
     }),
   ],
